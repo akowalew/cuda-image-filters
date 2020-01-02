@@ -7,6 +7,15 @@
 [requires]
     doctest/2.3.4@bincrafters/stable
     google-benchmark/1.4.1@mpusz/stable
+	opencv/4.1.0@conan/stable
 
 [generators]
     cmake
+
+[options]
+	opencv:dc1394 = False
+	opencv:jasper = False
+	opencv:openexr = False
+	opencv:protobuf = False
+	opencv:tiff = False
+	opencv:webp = False

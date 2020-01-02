@@ -71,6 +71,7 @@ endif()
 if(BUILD_BENCHMARKING)
 	add_executable(filters_bench
 		bench/bench_main.cpp
+		bench/filter2d_bench.cpp
 	)
 
 	target_compile_options(filters_bench
