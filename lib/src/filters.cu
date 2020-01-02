@@ -12,24 +12,13 @@
 
 namespace filters {
 	
-namespace {
-
-void check(cudaError_t result, 
+void check_fail(cudaError_t result, 
 	char const *const func, const char *const file, int const line)
 {
-	if(!result)
-	{
-		return;
-	}
-
 	fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", 
 		file, line, result, cudaGetErrorString(result), func);
 	exit(EXIT_FAILURE);
 }
-
-#define check_errors(val) check((val), #val, __FILE__, __LINE__)
-
-} // namespace
 
 __host__
 void init()
@@ -113,10 +102,13 @@ void filter2d(
 	check_errors(cudaMemcpy(d_kernel, kernel, 
 		ksize * ksize * sizeof(float), cudaMemcpyHostToDevice));
 
-	// Invoke algorithm 
-	filter2d_kernel<<<1, 1>>>(d_src, d_spitch, cols, rows,
+	// Launch filtering CUDA kernel
+	filter2d_launch(d_src, d_spitch, cols, rows,
 		d_kernel, ksize,
 		d_dst, d_dpitch);
+
+	// Wait for kernel launch to be done
+	check_errors(cudaDeviceSynchronize());
 
 	// Copy output data
 	check_errors(cudaMemcpy2D(dst, dpitch, d_dst, d_dpitch, 
@@ -126,6 +118,21 @@ void filter2d(
 	check_errors(cudaFree(d_kernel));
 	check_errors(cudaFree(d_dst));
 	check_errors(cudaFree(d_src));
+}
+
+__host__
+void filter2d_launch(
+	const uchar* d_src, size_t d_spitch, size_t cols, size_t rows,
+	const float* d_kernel, size_t ksize,
+	uchar* d_dst, size_t d_dpitch)
+{
+	// Invoke algorithm 
+	filter2d_kernel<<<1, 1>>>(d_src, d_spitch, cols, rows,
+		d_kernel, ksize,
+		d_dst, d_dpitch);
+
+	// Check errors in kernel invocation
+	check_errors(cudaGetLastError());
 }
 
 __global__
