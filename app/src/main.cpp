@@ -23,21 +23,23 @@ cv::Mat load_image(const char* path)
 {
 	printf("*** Loading image\n");
 
-	return cv::imread(path, cv::IMREAD_GRAYSCALE);
+	return cv::imread(cv::String(path), cv::IMREAD_GRAYSCALE);
 }
 
 cv::Mat filter_image(const cv::Mat& image)
 {
 	printf("*** Filtering\n");
 
-	// Mean-blur 3x3 kernel
+	// Mean-blur 5x5 kernel
 	static float kernel_data[] {
-		1.0/9, 1.0/9, 1.0/9,
-		1.0/9, 1.0/9, 1.0/9,
-		1.0/9, 1.0/9, 1.0/9
+		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
+		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
+		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
+		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
+		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25
 	};  
 
-	const auto kernel = cv::Mat(3, 3, CV_32F, kernel_data);
+	const auto kernel = cv::Mat(5, 5, CV_32F, kernel_data);
 	return filters::filter2d(image, kernel);
 }
 
