@@ -12,6 +12,13 @@
 
 namespace filters {
 	
+namespace {
+
+//! Fixed size constant buffer for convolution filter kernels
+__constant__ float c_kernel[1024];
+
+} // namespace
+
 void check_fail(cudaError_t result, 
 	char const *const func, const char *const file, int const line)
 {
@@ -93,18 +100,14 @@ void filter2d(
 	check_errors(cudaMallocPitch(&d_dst, &d_dpitch, 
 		cols * sizeof(uchar), rows));
 
-	float* d_kernel;
-	check_errors(cudaMalloc(&d_kernel, ksize * ksize * sizeof(float)));
-
 	// Copy input data
 	check_errors(cudaMemcpy2D(d_src, d_spitch, src, spitch, 
 		cols * sizeof(uchar), rows, cudaMemcpyHostToDevice));
-	check_errors(cudaMemcpy(d_kernel, kernel, 
-		ksize * ksize * sizeof(float), cudaMemcpyHostToDevice));
+	set_kernel(kernel, ksize);
 
 	// Launch filtering CUDA kernel
 	filter2d_launch(d_src, d_spitch, cols, rows,
-		d_kernel, ksize,
+		ksize,
 		d_dst, d_dpitch);
 
 	// Wait for kernel launch to be done
@@ -115,15 +118,22 @@ void filter2d(
 		cols * sizeof(uchar), rows, cudaMemcpyDeviceToHost));
 
 	// Free memories
-	check_errors(cudaFree(d_kernel));
 	check_errors(cudaFree(d_dst));
 	check_errors(cudaFree(d_src));
 }
 
 __host__
+void set_kernel(const float* kernel, size_t ksize)
+{
+	// Copy data from host kernel to constant memory
+	check_errors(cudaMemcpyToSymbol(c_kernel, kernel, 
+		ksize * ksize * sizeof(float)));	
+}
+
+__host__
 void filter2d_launch(
 	const uchar* d_src, size_t d_spitch, size_t cols, size_t rows,
-	const float* d_kernel, size_t ksize,
+	size_t ksize,
 	uchar* d_dst, size_t d_dpitch)
 {
 	// Let use as much threads in block as possible
@@ -136,7 +146,7 @@ void filter2d_launch(
 	// Invoke algorithm 
 	filter2d_kernel<<<dim_grid, dim_block>>>(
 		d_src, d_spitch, cols, rows,
-		d_kernel, ksize,
+		ksize,
 		d_dst, d_dpitch);
 
 	// Check errors in kernel invocation
@@ -146,7 +156,7 @@ void filter2d_launch(
 __global__
 void filter2d_kernel(
 	const uchar* src, size_t spitch, size_t cols, size_t rows,
-	const float* kernel, size_t ksize,
+	/*const float* kernel, */size_t ksize,
 	uchar* dst, size_t dpitch)
 {
 	const auto i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -169,7 +179,7 @@ void filter2d_kernel(
 	{
 		for(size_t n = 0; n < ksize; ++n)
 		{
-			sum += src[(i+m)*spitch + (j+n)] * kernel[m*ksize + n];
+			sum += src[(i+m)*spitch + (j+n)] * c_kernel[m*ksize + n];
 		}
 	}
 

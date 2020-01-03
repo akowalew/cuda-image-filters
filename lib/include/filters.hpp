@@ -72,6 +72,16 @@ void filter2d(
 	uchar* dst, size_t dpitch);
 
 /**
+ * @brief Sets data of convolution filter kernel
+ * @details 
+ * 
+ * @param kernel data of squared kernel
+ * @param ksize size of the kernel
+ */	
+__host__	
+void set_kernel(const float* kernel, size_t ksize);
+
+/**
  * @brief Performs filtering on 2D image with specified filter kernel - CUDA kernel launcher
  * @details
  * 
@@ -87,7 +97,7 @@ void filter2d(
 __host__
 void filter2d_launch(
 	const uchar* d_src, size_t d_spitch, size_t cols, size_t rows,
-	const float* d_kernel, size_t ksize,
+	size_t ksize,
 	uchar* d_dst, size_t d_dpitch);
 
 /**
@@ -106,7 +116,7 @@ void filter2d_launch(
 __global__
 void filter2d_kernel(
 	const uchar* src, size_t spitch, size_t cols, size_t rows,
-	const float* kernel, size_t ksize,
+	size_t ksize,
 	uchar* dst, size_t dpitch);
 
 } // namespace filters

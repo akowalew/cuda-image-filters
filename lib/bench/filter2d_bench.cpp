@@ -71,9 +71,6 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 	check_errors(cudaMallocPitch(&d_dst, &d_dpitch, 
 		cols * sizeof(uchar), rows));
 
-	float* d_kernel;
-	check_errors(cudaMalloc(&d_kernel, ksize * ksize * sizeof(float)));
-
 	// Create event stamps for time measuring
 	cudaEvent_t start, stop;
 	check_errors(cudaEventCreate(&start));
@@ -87,7 +84,7 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 
 		// Invoke algorithm 
 		filters::filter2d_launch(d_src, d_spitch, cols, rows,
-			d_kernel, ksize,
+			ksize,
 			d_dst, d_dpitch);
 
 		// Stop kernel time measuring
@@ -111,7 +108,6 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 	check_errors(cudaEventDestroy(stop));
 	
 	// Free memory
-	check_errors(cudaFree(d_kernel));
 	check_errors(cudaFree(d_dst));
 	check_errors(cudaFree(d_src));
 
