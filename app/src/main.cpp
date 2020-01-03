@@ -26,20 +26,27 @@ cv::Mat load_image(const char* path)
 	return cv::imread(cv::String(path), cv::IMREAD_GRAYSCALE);
 }
 
-cv::Mat filter_image(const cv::Mat& image)
+cv::Mat gen_kernel(size_t ksize)
+{
+	printf("*** Generating kernel\n");
+
+	// Create Mean-Blur square kernel
+	auto kernel = cv::Mat(ksize, ksize, CV_32F);
+	const auto sq_ksize = (ksize*ksize);
+	const auto kvalue = (1.0f / sq_ksize);
+
+	// Fill kernel with same values
+	const auto kbegin = (float*)kernel.data;
+	const auto kend = (kbegin + sq_ksize);
+	std::fill(kbegin, kend, kvalue);
+
+	return kernel;
+}
+
+cv::Mat filter_image(const cv::Mat& image, const cv::Mat& kernel)
 {
 	printf("*** Filtering\n");
 
-	// Mean-blur 5x5 kernel
-	static float kernel_data[] {
-		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
-		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
-		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
-		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25,
-		1.0/25, 1.0/25, 1.0/25, 1.0/25, 1.0/25
-	};  
-
-	const auto kernel = cv::Mat(5, 5, CV_32F, kernel_data);
 	return filters::filter2d(image, kernel);
 }
 
@@ -68,19 +75,21 @@ void cleanup()
  */
 int main(int argc, char** argv)
 {
-	if(argc != 3)
+	if(argc != 4)
 	{
-		printf("Usage: ./filter-image <src_file> <dst_file>\n");
+		printf("Usage: ./filter-image <src_file> <dst_file> <kernel_size>\n");
 		return -1;
 	}
 
 	const auto src_file = argv[1];
 	const auto dst_file = argv[2];
+	const auto kernel_size = std::atoi(argv[3]);
 
 	init();
 
 	const auto src_image = load_image(src_file);
-	const auto dst_image = filter_image(src_image);
+	const auto kernel = gen_kernel(kernel_size);
+	const auto dst_image = filter_image(src_image, kernel);
 	save_image(dst_file, dst_image);
 
 	cleanup();
