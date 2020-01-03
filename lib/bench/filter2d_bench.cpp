@@ -6,6 +6,8 @@
 
 #include <benchmark/benchmark.h>
 
+#include <opencv2/imgproc.hpp>
+
 #include "filters.hpp"
 
 /**
@@ -20,13 +22,13 @@
 void filter2d(benchmark::State& state, int cols, int rows, int ksize)
 {
 	filters::init();
-	auto img = cv::Mat(rows, cols, CV_8UC1);
+	auto src = cv::Mat(rows, cols, CV_8UC1);
 	auto dst = cv::Mat(rows, cols, CV_8UC1);
 	auto kernel = cv::Mat(ksize, ksize, CV_32F);
 
 	for(auto _ : state)
 	{
-		filters::filter2d(img, kernel, dst);
+		filters::filter2d(src, kernel, dst);
 	}
 
 	filters::cleanup();
@@ -134,3 +136,38 @@ BENCHMARK_CAPTURE(filter2d_launch, 640x480x13, 640, 480, 13)
 BENCHMARK_CAPTURE(filter2d_launch, 1024x768x13, 1024, 768, 13)
 	->UseRealTime()
 	->UseManualTime();
+
+/**
+ * @brief Benchmarks performance of 2D filtering with OpenCV implementation
+ * @details 
+ * 
+ * @param state benchmark state
+ * @param cols image cols 
+ * @param rows image rows
+ * @param ksize kernel size
+ */			
+void cv_filter2d(benchmark::State& state, int cols, int rows, int ksize)
+{
+	auto src = cv::Mat(rows, cols, CV_8UC1);
+	auto dst = cv::Mat(rows, cols, CV_8UC1);
+	const auto ddepth = -1; // Keep depth as in source
+	auto kernel = cv::Mat(ksize, ksize, CV_32F);
+
+	for(auto _ : state)
+	{
+		cv::filter2D(src, dst, ddepth, kernel);
+	}
+}
+
+BENCHMARK_CAPTURE(cv_filter2d, 320x240x3, 320, 240, 3)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 640x480x3, 640, 480, 3)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 1024x768x3, 1024, 768, 3)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 320x240x13, 320, 240, 13)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13)
+	->UseRealTime();
