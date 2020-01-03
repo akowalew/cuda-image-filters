@@ -126,8 +126,16 @@ void filter2d_launch(
 	const float* d_kernel, size_t ksize,
 	uchar* d_dst, size_t d_dpitch)
 {
+	// Let use as much threads in block as possible
+	const auto K = 32;
+	const auto dim_block = dim3(K, K);
+
+	// Use as much KxK blocks as needed for this image
+	const auto dim_grid = dim3((cols+K-1)/K, (rows+K-1)/K);
+
 	// Invoke algorithm 
-	filter2d_kernel<<<1, 1>>>(d_src, d_spitch, cols, rows,
+	filter2d_kernel<<<dim_grid, dim_block>>>(
+		d_src, d_spitch, cols, rows,
 		d_kernel, ksize,
 		d_dst, d_dpitch);
 
@@ -141,25 +149,33 @@ void filter2d_kernel(
 	const float* kernel, size_t ksize,
 	uchar* dst, size_t dpitch)
 {
-	const auto half_ksize = (ksize/2);
-
-	for(size_t i = 0; i < rows - 2*half_ksize; ++i)
+	const auto i = blockIdx.y * blockDim.y + threadIdx.y;
+	const auto j = blockIdx.x * blockDim.x + threadIdx.x;
+	if(i > rows || j > cols)
 	{
-		for(size_t j = 0; j < cols - 2*half_ksize; ++j)
+		// If we are out of image size, return
+		return;
+	}
+
+	if(i > rows - ksize || j > cols - ksize)
+	{
+		// If we are outside filter kernel range, do nothing
+		return;
+	}
+
+	// Calculate partial sums with each element of the kernel
+	auto sum = 0.0f;
+	for(size_t m = 0; m < ksize; ++m)
+	{
+		for(size_t n = 0; n < ksize; ++n)
 		{
-			auto sum = 0.0f;
-
-			for(size_t m = 0; m < ksize; ++m)
-			{
-				for(size_t n = 0; n < ksize; ++n)
-				{
-					sum += src[(i+m)*spitch + (j+n)] * kernel[m*ksize + n];
-				}
-			}
-
-			dst[(i+half_ksize)*dpitch + (j+half_ksize)] = sum;
+			sum += src[(i+m)*spitch + (j+n)] * kernel[m*ksize + n];
 		}
 	}
+
+	// Store final sum in the destination image
+	const auto half_ksize = (ksize/2);
+	dst[(i+half_ksize)*dpitch + (j+half_ksize)] = sum;
 }
 
 } // namespace filters

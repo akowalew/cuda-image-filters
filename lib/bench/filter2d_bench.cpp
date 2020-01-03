@@ -100,7 +100,7 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 		check_errors(cudaDeviceSynchronize());
 
 		// Manually set measured iteration time
-		const auto elapsed_time_s = (elapsed_time_ms * 1000);
+		const auto elapsed_time_s = (elapsed_time_ms / 1000);
 		state.SetIterationTime(elapsed_time_s);
 	}
 
@@ -117,14 +117,20 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 }
 
 BENCHMARK_CAPTURE(filter2d_launch, 320x240x3, 320, 240, 3)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
 BENCHMARK_CAPTURE(filter2d_launch, 640x480x3, 640, 480, 3)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
 BENCHMARK_CAPTURE(filter2d_launch, 1024x768x3, 1024, 768, 3)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
 BENCHMARK_CAPTURE(filter2d_launch, 320x240x13, 320, 240, 13)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
 BENCHMARK_CAPTURE(filter2d_launch, 640x480x13, 640, 480, 13)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
 BENCHMARK_CAPTURE(filter2d_launch, 1024x768x13, 1024, 768, 13)
-	->UseRealTime();
+	->UseRealTime()
+	->UseManualTime();
