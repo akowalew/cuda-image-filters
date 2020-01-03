@@ -14,8 +14,14 @@ namespace filters {
 	
 namespace {
 
+//! Maximum size of the squared kernel
+const auto KSizeMax = 32;
+
 //! Fixed size constant buffer for convolution filter kernels
-__constant__ float c_kernel[1024];
+__constant__ float c_kernel[KSizeMax * KSizeMax];
+
+// Number of threads in both X and Y dimensions in the block
+const auto K = 32;
 
 } // namespace
 
@@ -37,6 +43,53 @@ __host__
 void cleanup()
 {
 	check_errors(cudaDeviceReset());
+}
+
+std::pair<uchar* /*d_img*/, size_t /*d_pitch*/> 
+	create_image(size_t cols, size_t rows)
+{
+	uchar* d_img;
+	size_t d_pitch;
+	check_errors(cudaMallocPitch(&d_img, &d_pitch, 
+		cols * sizeof(uchar), rows));
+
+	return {d_img, d_pitch};
+}
+
+void free_image(uchar* d_img)
+{
+	check_errors(cudaFree(d_img));
+}
+
+void set_image(uchar* d_dst, size_t d_dpitch, 
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows)
+{
+	const auto width = (cols * sizeof(uchar));
+	const auto height = rows;
+	check_errors(cudaMemcpy2D(d_dst, d_dpitch, src, spitch, 
+		width, height, cudaMemcpyHostToDevice));
+}
+
+void get_image(uchar* dst, size_t dpitch,
+	const uchar* d_src, size_t d_spitch,
+	size_t cols, size_t rows)
+{
+	const auto width = (cols * sizeof(uchar));
+	const auto height = rows;
+	check_errors(cudaMemcpy2D(dst, dpitch, d_src, d_spitch, 
+		width, height, cudaMemcpyDeviceToHost));
+}
+
+__host__
+void set_kernel(const float* kernel, size_t ksize)
+{
+	// Ensure proper size of the kernel
+	assert(ksize <= KSizeMax);
+
+	// Copy data from host kernel to constant memory
+	check_errors(cudaMemcpyToSymbol(c_kernel, kernel, 
+		ksize * ksize * sizeof(float)));	
 }
 
 __host__
@@ -90,19 +143,13 @@ void filter2d(
 	uchar* dst, size_t dpitch)
 {
 	// Allocate memories
-	uchar* d_src;
-	size_t d_spitch;
-	check_errors(cudaMallocPitch(&d_src, &d_spitch, 
-		cols * sizeof(uchar), rows));
-
-	uchar* d_dst;
-	size_t d_dpitch;
-	check_errors(cudaMallocPitch(&d_dst, &d_dpitch, 
-		cols * sizeof(uchar), rows));
+	uchar* d_src; size_t d_spitch;
+	std::tie(d_src, d_spitch) = create_image(cols, rows);
+	uchar* d_dst; size_t d_dpitch;
+	std::tie(d_dst, d_dpitch) = create_image(cols, rows);
 
 	// Copy input data
-	check_errors(cudaMemcpy2D(d_src, d_spitch, src, spitch, 
-		cols * sizeof(uchar), rows, cudaMemcpyHostToDevice));
+	set_image(d_src, d_spitch, src, spitch, cols, rows);
 	set_kernel(kernel, ksize);
 
 	// Launch filtering CUDA kernel
@@ -114,20 +161,11 @@ void filter2d(
 	check_errors(cudaDeviceSynchronize());
 
 	// Copy output data
-	check_errors(cudaMemcpy2D(dst, dpitch, d_dst, d_dpitch, 
-		cols * sizeof(uchar), rows, cudaMemcpyDeviceToHost));
+	get_image(dst, dpitch, d_dst, d_dpitch, cols, rows);
 
 	// Free memories
-	check_errors(cudaFree(d_dst));
-	check_errors(cudaFree(d_src));
-}
-
-__host__
-void set_kernel(const float* kernel, size_t ksize)
-{
-	// Copy data from host kernel to constant memory
-	check_errors(cudaMemcpyToSymbol(c_kernel, kernel, 
-		ksize * ksize * sizeof(float)));	
+	free_image(d_src);
+	free_image(d_dst);
 }
 
 __host__
@@ -137,7 +175,6 @@ void filter2d_launch(
 	uchar* d_dst, size_t d_dpitch)
 {
 	// Let use as much threads in block as possible
-	const auto K = 32;
 	const auto dim_block = dim3(K, K);
 
 	// Use as much KxK blocks as needed for this image

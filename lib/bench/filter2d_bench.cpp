@@ -61,15 +61,10 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 	filters::init();
 
 	// Allocate memories
-	uchar* d_src;
-	size_t d_spitch;
-	check_errors(cudaMallocPitch(&d_src, &d_spitch, 
-		cols * sizeof(uchar), rows));
-
-	uchar* d_dst;
-	size_t d_dpitch;
-	check_errors(cudaMallocPitch(&d_dst, &d_dpitch, 
-		cols * sizeof(uchar), rows));
+	uchar* d_src; size_t d_spitch;
+	std::tie(d_src, d_spitch) = filters::create_image(cols, rows);
+	uchar* d_dst; size_t d_dpitch;
+	std::tie(d_dst, d_dpitch) = filters::create_image(cols, rows);
 
 	// Create event stamps for time measuring
 	cudaEvent_t start, stop;
@@ -108,8 +103,8 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 	check_errors(cudaEventDestroy(stop));
 	
 	// Free memory
-	check_errors(cudaFree(d_dst));
-	check_errors(cudaFree(d_src));
+	filters::free_image(d_dst);
+	filters::free_image(d_src);
 
 	filters::cleanup();
 }

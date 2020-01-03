@@ -30,6 +30,66 @@ __host__
 void cleanup();
 
 /**
+ * @brief Creates 2D image on the device
+ * @details 
+ * 
+ * @param cols number of columns in the target image
+ * @param rows number of rows in the target image
+ * 
+ * @return pair with non-null pointer to device image memory and pitch of that image
+ */
+std::pair<uchar* /*d_img*/, size_t /*d_pitch*/> 
+	create_image(size_t cols, size_t rows);
+
+/**
+ * @brief Frees image allocated with `create_image`
+ * @details 
+ * 
+ * @param d_img pointer to device image memory
+ */
+void free_image(uchar* d_img);
+
+/**
+ * @brief Copies image data from host to device
+ * @details 
+ * 
+ * @param d_dst destination device image
+ * @param d_dpitch pitch of destination device image
+ * @param src source host image
+ * @param spitch pitch of source host image
+ * @param cols number of columns
+ * @param rows number of rows
+ */
+void set_image(uchar* d_dst, size_t d_dpitch, 
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows);
+
+/**
+ * @brief Copies image data from device to host
+ * @details 
+ * 
+ * @param dst destination host image
+ * @param dpitch pitch of destination host image
+ * @param d_src source device image
+ * @param d_spitch pitch of source device image
+ * @param cols number of columns
+ * @param rows number of rows
+ */
+void get_image(uchar* dst, size_t dpitch,
+	const uchar* d_src, size_t d_spitch,
+	size_t cols, size_t rows);
+
+/**
+ * @brief Sets data of convolution filter kernel
+ * @details 
+ * 
+ * @param kernel data of squared kernel
+ * @param ksize size of the kernel
+ */	
+__host__	
+void set_kernel(const float* kernel, size_t ksize);
+
+/**
  * @brief Performs filtering on 2D image with specified filter kernel - Host version
  * @details 
  * 
@@ -70,16 +130,6 @@ void filter2d(
 	const uchar* src, size_t spitch, size_t cols, size_t rows,
 	const float* kernel, size_t ksize,
 	uchar* dst, size_t dpitch);
-
-/**
- * @brief Sets data of convolution filter kernel
- * @details 
- * 
- * @param kernel data of squared kernel
- * @param ksize size of the kernel
- */	
-__host__	
-void set_kernel(const float* kernel, size_t ksize);
 
 /**
  * @brief Performs filtering on 2D image with specified filter kernel - CUDA kernel launcher
