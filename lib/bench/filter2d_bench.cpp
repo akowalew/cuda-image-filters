@@ -46,6 +46,8 @@ BENCHMARK_CAPTURE(filter2d, 640x480x13, 640, 480, 13)
 	->UseRealTime();
 BENCHMARK_CAPTURE(filter2d, 1024x768x13, 1024, 768, 13)
 	->UseRealTime();
+BENCHMARK_CAPTURE(filter2d, 4096x2160x33, 4096, 2160, 33)
+	->UseRealTime();
 
 /**
  * @brief Benchmarks performance of 2D filtering direct by CUDA kernel launcher
@@ -127,6 +129,9 @@ BENCHMARK_CAPTURE(filter2d_launch, 640x480x13, 640, 480, 13)
 BENCHMARK_CAPTURE(filter2d_launch, 1024x768x13, 1024, 768, 13)
 	->UseRealTime()
 	->UseManualTime();
+BENCHMARK_CAPTURE(filter2d_launch, 4096x2160x33, 4096, 2160, 33)
+	->UseRealTime()
+	->UseManualTime();
 
 /**
  * @brief Benchmarks performance of 2D filtering with OpenCV implementation
@@ -161,4 +166,6 @@ BENCHMARK_CAPTURE(cv_filter2d, 320x240x13, 320, 240, 13)
 BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13)
 	->UseRealTime();
 BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13)
+	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x33, 4096, 2160, 33)
 	->UseRealTime();
