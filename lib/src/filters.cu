@@ -230,7 +230,7 @@ void filter2d_kernel(
 	}
 
 	// Calculate partial sums with each element of the kernel
-	double sum = 0.0;
+	float sum = 0.0;
 	for(int m = 0, y = threadIdx.y; m < ksize; ++m, ++y)
 	{
 		for(int n = 0, x = threadIdx.x; n < ksize; ++n, ++x)

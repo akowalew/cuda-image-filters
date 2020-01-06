@@ -46,7 +46,7 @@ BENCHMARK_CAPTURE(filter2d, 640x480x13, 640, 480, 13)
 	->UseRealTime();
 BENCHMARK_CAPTURE(filter2d, 1024x768x13, 1024, 768, 13)
 	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 4096x2160x33, 4096, 2160, 33)
+BENCHMARK_CAPTURE(filter2d, 4096x2160x9, 4096, 2160, 9)
 	->UseRealTime();
 
 /**
@@ -129,7 +129,7 @@ BENCHMARK_CAPTURE(filter2d_launch, 640x480x13, 640, 480, 13)
 BENCHMARK_CAPTURE(filter2d_launch, 1024x768x13, 1024, 768, 13)
 	->UseRealTime()
 	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 4096x2160x33, 4096, 2160, 33)
+BENCHMARK_CAPTURE(filter2d_launch, 4096x2160x9, 4096, 2160, 9)
 	->UseRealTime()
 	->UseManualTime();
 
@@ -167,5 +167,5 @@ BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13)
 	->UseRealTime();
 BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13)
 	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x33, 4096, 2160, 33)
+BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x9, 4096, 2160, 9)
 	->UseRealTime();
