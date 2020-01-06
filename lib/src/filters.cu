@@ -15,7 +15,7 @@ namespace filters {
 namespace {
 
 //! Maximum size of the squared kernel
-const auto KSizeMax = 32;
+const auto KSizeMax = 64;
 
 //! Fixed size constant buffer for convolution filter kernels
 __constant__ float c_kernel[KSizeMax * KSizeMax];
@@ -196,33 +196,51 @@ void filter2d_kernel(
 	/*const float* kernel, */size_t ksize,
 	uchar* dst, size_t dpitch)
 {
-	const auto i = blockIdx.y * blockDim.y + threadIdx.y;
-	const auto j = blockIdx.x * blockDim.x + threadIdx.x;
-	if(i > rows || j > cols)
+	// We need shared memory buffer to cache pixels from image
+	// According to current block + surrounding half'es of kernel
+	__shared__ uchar s_buffer[K + KSizeMax][K + KSizeMax];
+
+	const int i = (blockIdx.y*K + threadIdx.y);
+	const int j = (blockIdx.x*K + threadIdx.x);
+	const int half_ksize = (ksize / 2);
+
+	for(int m = threadIdx.y, y = (i-half_ksize); m < (K+ksize); m += K, y += K)
 	{
-		// If we are out of image size, return
-		return;
+		for(int n = threadIdx.x, x = (j-half_ksize); n < (K+ksize); n += K, x += K)
+		{
+			if((x < 0 || x > cols)
+				|| (y < 0 || y > rows))
+			{
+				s_buffer[m][n] = 0;
+				continue;
+			}
+
+			s_buffer[m][n] = src[y*spitch + x];
+		}
 	}
 
-	if(i > rows - ksize || j > cols - ksize)
+	__syncthreads();
+
+	if((i > (rows-half_ksize)) || (i < half_ksize) 
+		|| (j > (cols-half_ksize)) || (j < half_ksize))
 	{
-		// If we are outside filter kernel range, do nothing
+		// If we are outside filter kernel range, do not calculate nor write anything
+		// aka BORDER_NONE
 		return;
 	}
 
 	// Calculate partial sums with each element of the kernel
-	auto sum = 0.0f;
-	for(size_t m = 0; m < ksize; ++m)
+	double sum = 0.0;
+	for(int m = 0, y = threadIdx.y; m < ksize; ++m, ++y)
 	{
-		for(size_t n = 0; n < ksize; ++n)
+		for(int n = 0, x = threadIdx.x; n < ksize; ++n, ++x)
 		{
-			sum += src[(i+m)*spitch + (j+n)] * c_kernel[m*ksize + n];
+			sum += s_buffer[y][x] * c_kernel[m*ksize + n];
 		}
 	}
 
 	// Store final sum in the destination image
-	const auto half_ksize = (ksize/2);
-	dst[(i+half_ksize)*dpitch + (j+half_ksize)] = sum;
+	dst[i*dpitch + j] = sum;
 }
 
 } // namespace filters
