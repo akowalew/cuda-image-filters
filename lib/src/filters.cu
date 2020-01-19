@@ -210,16 +210,15 @@ void filter2d_kernel(
 	constexpr auto BufferSizeMax = (K + KSizeMax);
 	__shared__ uchar s_buffer[BufferSizeMax][BufferSizeMax];
 
-	const int i = (blockIdx.y*K + threadIdx.y);
-	const int j = (blockIdx.x*K + threadIdx.x);
-	const int half_ksize = (ksize / 2);
-
-	for(int m = threadIdx.y, y = (i-half_ksize); m < (K+ksize); m += K, y += K)
+	const auto buffer_size = (K + ksize);
+	for(int m = threadIdx.y; m < buffer_size; m += K)
 	{
-		for(int n = threadIdx.x, x = (j-half_ksize); n < (K+ksize); n += K, x += K)
+		for(int n = threadIdx.x; n < buffer_size; n += K)
 		{
-			if((x < 0 || x > cols)
-				|| (y < 0 || y > rows))
+			const int y = (m + blockIdx.y*K - ksize/2);
+			const int x = (n + blockIdx.x*K - ksize/2);
+
+			if((x < 0 || x > cols) || (y < 0 || y > rows))
 			{
 				s_buffer[m][n] = 0;
 				continue;
@@ -231,6 +230,9 @@ void filter2d_kernel(
 
 	__syncthreads();
 
+	const int i = (blockIdx.y*K + threadIdx.y);
+	const int j = (blockIdx.x*K + threadIdx.x);
+	const int half_ksize = (ksize / 2);
 	if((i > (rows-half_ksize)) || (i < half_ksize) 
 		|| (j > (cols-half_ksize)) || (j < half_ksize))
 	{
