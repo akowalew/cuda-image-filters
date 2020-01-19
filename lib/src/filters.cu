@@ -207,7 +207,8 @@ void filter2d_kernel(
 {
 	// We need shared memory buffer to cache pixels from image
 	// According to current block + surrounding half'es of kernel
-	__shared__ uchar s_buffer[K + KSizeMax][K + KSizeMax];
+	constexpr auto BufferSizeMax = (K + KSizeMax);
+	__shared__ uchar s_buffer[BufferSizeMax][BufferSizeMax];
 
 	const int i = (blockIdx.y*K + threadIdx.y);
 	const int j = (blockIdx.x*K + threadIdx.x);
