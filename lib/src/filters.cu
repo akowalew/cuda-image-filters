@@ -190,6 +190,15 @@ void filter2d_launch(
 	check_errors(cudaGetLastError());
 }
 
+__device__
+void filter2d_fetch_data(
+	const uchar* src, size_t spitch,
+	size_t cols, size_t rows,
+	uchar* s_buffer)
+{
+
+}
+
 __global__
 void filter2d_kernel(
 	const uchar* src, size_t spitch, 
@@ -230,13 +239,13 @@ void filter2d_kernel(
 	}
 
 	// Calculate partial sums with each element of the kernel
-	float sum = 0.0;
+	auto sum = 0.0f;
 	auto kernel = c_kernel;
-	for(int m = 0, y = threadIdx.y; m < ksize; ++m, ++y)
+	for(int m = 0; m < ksize; ++m)
 	{
-		for(int n = 0, x = threadIdx.x; n < ksize; ++n, ++x)
+		for(int n = 0; n < ksize; ++n)
 		{
-			const auto buffer_v = s_buffer[y][x];
+			const auto buffer_v = s_buffer[threadIdx.y + m][threadIdx.x + n];
 			const auto kernel_v = *(kernel++);
 			sum += buffer_v * kernel_v;
 		}
