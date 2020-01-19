@@ -190,67 +190,79 @@ void filter2d_launch(
 	check_errors(cudaGetLastError());
 }
 
-__device__
-void filter2d_fetch_data(
-	const uchar* src, size_t spitch,
-	size_t cols, size_t rows,
-	uchar* s_buffer)
-{
-
-}
-
 __global__
 void filter2d_kernel(
 	const uchar* src, size_t spitch, 
 	size_t cols, size_t rows, size_t ksize,
 	uchar* dst, size_t dpitch)
 {
-	// We need shared memory buffer to cache pixels from image
-	// According to current block + surrounding half'es of kernel
+	// We need shared memory buffer to cache pixels from image.
+	// In general, in every pixel of the block we must provide access to 
+	// surrounding halfes of the kernel (which at the end gives full kernel size)
 	constexpr auto BufferSizeMax = (K + KSizeMax);
+
+	// Note that we are declaring buffer using 2D notation, instead of 1D notation
+	// This is because, after benchmarking, iterating over rows of fixed size
+	// works faster than iterating over dynamic size array.
 	__shared__ uchar s_buffer[BufferSizeMax][BufferSizeMax];
 
+	// Cache source image into shared memory
+	// Each thread has to fetch every K-th element starting from that thread's
+	// position inside the block. We are incrementing with K, because buffer
+	// must contain also surrounding kernel elements.
 	const auto buffer_size = (K + ksize);
 	for(int m = threadIdx.y; m < buffer_size; m += K)
 	{
 		for(int n = threadIdx.x; n < buffer_size; n += K)
 		{
+			// Note that we are not caching result of ksize/2
+			// Benchmark showed, that current variant is better
 			const int y = (m + blockIdx.y*K - ksize/2);
 			const int x = (n + blockIdx.x*K - ksize/2);
 
+			// If we are out of bound of the image, assume that buffer is zero
 			if((x < 0 || x > cols) || (y < 0 || y > rows))
 			{
 				s_buffer[m][n] = 0;
 				continue;
 			}
 
+			// Store copy of source image pixel into the buffer
 			s_buffer[m][n] = src[y*spitch + x];
 		}
 	}
 
+	// Wait until all threads has done caching
 	__syncthreads();
 
+	// Perform convolution on shared memory buffer
 	const int i = (blockIdx.y*K + threadIdx.y);
 	const int j = (blockIdx.x*K + threadIdx.x);
 	const int half_ksize = (ksize / 2);
-	if((i > (rows-half_ksize)) || (i < half_ksize) 
-		|| (j > (cols-half_ksize)) || (j < half_ksize))
+
+	// Check, if we are at the image border	
+	if((i > (rows - half_ksize)) || (i < half_ksize) 
+		|| (j > (cols - half_ksize)) || (j < half_ksize))
 	{
-		// If we are outside filter kernel range, do not calculate nor write anything
-		// aka BORDER_NONE
+		// Do not calculate nor write anything (aka BORDER_NONE)
 		return;
 	}
 
-	// Calculate partial sums with each element of the kernel
+	// Calculate partial sums of buffer pixels with kernel's elements
+	// Note that we are iterating only over kernel using pointer (benchmarks)
 	auto sum = 0.0f;
 	auto kernel = c_kernel;
 	for(int m = 0; m < ksize; ++m)
 	{
 		for(int n = 0; n < ksize; ++n)
 		{
-			const auto buffer_v = s_buffer[threadIdx.y + m][threadIdx.x + n];
+			const auto y = (threadIdx.y + m);
+			const auto x = (threadIdx.x + n);
+
+			const auto buffer_v = s_buffer[y][x];
 			const auto kernel_v = *(kernel++);
-			sum += buffer_v * kernel_v;
+
+			sum += (buffer_v * kernel_v);
 		}
 	}
 
