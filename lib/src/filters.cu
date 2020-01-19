@@ -170,8 +170,8 @@ void filter2d(
 
 __host__
 void filter2d_launch(
-	const uchar* d_src, size_t d_spitch, size_t cols, size_t rows,
-	size_t ksize,
+	const uchar* d_src, size_t d_spitch, 
+	size_t cols, size_t rows, size_t ksize,
 	uchar* d_dst, size_t d_dpitch)
 {
 	// Let use as much threads in block as possible
@@ -192,8 +192,8 @@ void filter2d_launch(
 
 __global__
 void filter2d_kernel(
-	const uchar* src, size_t spitch, size_t cols, size_t rows,
-	/*const float* kernel, */size_t ksize,
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows, size_t ksize,
 	uchar* dst, size_t dpitch)
 {
 	// We need shared memory buffer to cache pixels from image
@@ -231,11 +231,14 @@ void filter2d_kernel(
 
 	// Calculate partial sums with each element of the kernel
 	float sum = 0.0;
+	auto kernel = c_kernel;
 	for(int m = 0, y = threadIdx.y; m < ksize; ++m, ++y)
 	{
 		for(int n = 0, x = threadIdx.x; n < ksize; ++n, ++x)
 		{
-			sum += s_buffer[y][x] * c_kernel[m*ksize + n];
+			const auto buffer_v = s_buffer[y][x];
+			const auto kernel_v = *(kernel++);
+			sum += buffer_v * kernel_v;
 		}
 	}
 
