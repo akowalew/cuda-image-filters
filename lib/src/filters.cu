@@ -7,6 +7,7 @@
 #include "filters.hpp"
 
 #include <cassert>
+#include <cstdlib>
 
 #include <opencv2/imgproc.hpp>
 
@@ -20,8 +21,14 @@ const auto KSizeMax = 64;
 //! Fixed size constant buffer for convolution filter kernels
 __constant__ float c_kernel[KSizeMax * KSizeMax];
 
-// Number of threads in both X and Y dimensions in the block
+//! Number of threads in both X and Y dimensions in the block
 const auto K = 32;
+
+//! Whether to print logs to stdout or not
+bool g_verbose = false;
+
+//! Number of cuda device to use
+unsigned g_devnum = 0;
 
 } // namespace
 
@@ -33,10 +40,72 @@ void check_fail(cudaError_t result,
 	exit(EXIT_FAILURE);
 }
 
+int get_attribute(cudaDeviceAttr attr)
+{
+	int value;
+	check_errors(cudaDeviceGetAttribute(&value, attr, g_devnum));
+
+	return value;
+}
+
+bool obtain_verbosity()
+{
+	const auto verbose = std::getenv("VERBOSE");
+	if(verbose == nullptr || (std::strcmp(verbose, "0") == 0))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+int obtain_devnum()
+{
+	const auto devnum = std::getenv("DEVNUM");
+	if(devnum == nullptr)
+	{
+		return 0;
+	}
+
+	return atoi(devnum);
+}
+
+void print_attributes()
+{
+	printf("Device attributes:\n");
+	printf(" cudaDevAttrMaxThreadsPerBlock=%d\n", get_attribute(cudaDevAttrMaxThreadsPerBlock));
+	printf(" cudaDevAttrMaxBlockDimX=%d\n", get_attribute(cudaDevAttrMaxBlockDimX));
+	printf(" cudaDevAttrMaxBlockDimY=%d\n", get_attribute(cudaDevAttrMaxBlockDimY));
+	printf(" cudaDevAttrMaxBlockDimZ=%d\n", get_attribute(cudaDevAttrMaxBlockDimZ));
+	printf(" cudaDevAttrMaxGridDimX=%d\n", get_attribute(cudaDevAttrMaxGridDimX));
+	printf(" cudaDevAttrMaxGridDimY=%d\n", get_attribute(cudaDevAttrMaxGridDimY));
+	printf(" cudaDevAttrMaxGridDimZ=%d\n", get_attribute(cudaDevAttrMaxGridDimZ));
+	printf(" cudaDevAttrMaxSharedMemoryPerBlock=%d\n", get_attribute(cudaDevAttrMaxSharedMemoryPerBlock));
+	printf(" cudaDevAttrTotalConstantMemory=%d\n", get_attribute(cudaDevAttrTotalConstantMemory));
+	printf(" cudaDevAttrWarpSize=%d\n", get_attribute(cudaDevAttrWarpSize));
+	printf(" cudaDevAttrClockRate=%d\n", get_attribute(cudaDevAttrClockRate));
+	printf(" cudaDevAttrMultiProcessorCount=%d\n", get_attribute(cudaDevAttrMultiProcessorCount));
+	printf(" cudaDevAttrMemoryClockRate=%d\n", get_attribute(cudaDevAttrMemoryClockRate));
+	printf(" cudaDevAttrL2CacheSize=%d\n", get_attribute(cudaDevAttrL2CacheSize));
+	printf(" cudaDevAttrMaxThreadsPerMultiProcessor=%d\n", get_attribute(cudaDevAttrMaxThreadsPerMultiProcessor));
+	printf(" cudaDevAttrComputeCapabilityMajor=%d\n", get_attribute(cudaDevAttrComputeCapabilityMajor));
+	printf(" cudaDevAttrComputeCapabilityMinor=%d\n", get_attribute(cudaDevAttrComputeCapabilityMinor));
+	printf(" cudaDevAttrMaxSharedMemoryPerMultiprocessor=%d\n", get_attribute(cudaDevAttrMaxSharedMemoryPerMultiprocessor));
+	printf(" cudaDevAttrMaxRegistersPerMultiprocessor=%d\n", get_attribute(cudaDevAttrMaxRegistersPerMultiprocessor));
+}
+
 __host__
 void init()
 {
-	check_errors(cudaSetDevice(0));
+	g_verbose = obtain_verbosity();
+	g_devnum = obtain_devnum();
+
+	if(g_verbose)
+	{
+		print_attributes();
+	}
+
+	check_errors(cudaSetDevice(g_devnum));
 }
 
 __host__
@@ -221,7 +290,7 @@ void filter2d_kernel(
 			const int x = (n + blockIdx.x*K - ksize/2);
 
 			// If we are out of bound of the image, assume that buffer is zero
-			if((x < 0 || x > cols) || (y < 0 || y > rows))
+			if(x < 0 || y < 0 || x > cols || y > rows)
 			{
 				s_buffer[m][n] = 0;
 				continue;
