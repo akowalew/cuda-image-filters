@@ -12,13 +12,15 @@ project(cuda-image-filters VERSION 0.1.0 LANGUAGES CXX CUDA)
 # Project options 
 ###############################################################################
 
-option(BUILD_CONAN "Whether to use Conan package manager or not" ON)
+option(BUILD_CONAN "Use Conan package manager" ON)
 
-option(BUILD_TESTING "Whether to build unit tests or not" ON)
-option(BUILD_BENCHMARKING "Whether to build benchmarks or not" ON)
+option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_BENCHMARKING "Build benchmarks" ON)
 
-option(BUILD_LIB "Whether to build `filters` library or not" ON)
-option(BUILD_APP "Whether to build `filter-image` application or not" ON)
+option(BUILD_LIB "Build `filters` library" ON)
+option(BUILD_APP "Build `filter-image` application" ON)
+
+option(BUILD_VERBOSE "Print verbose outputs during build" ON)
 
 ###############################################################################
 # Project setup
@@ -32,6 +34,13 @@ endif()
 # If some CXX or CUDA standard is needed for a target, require it  
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+# If needed verbose, add compile flags to compilers to print resource usage
+if(BUILD_VERBOSE)
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-v>
+    )
+endif()
 
 ###############################################################################
 # Conan integration 
