@@ -11,9 +11,15 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include "filters_errors.hpp"
+
 namespace filters {
 	
 namespace {
+
+//
+// Private globals
+//
 
 //! Maximum size of the squared kernel
 const auto KSizeMax = 64;
@@ -30,16 +36,17 @@ bool g_verbose = false;
 //! Number of cuda device to use
 unsigned g_devnum = 0;
 
-} // namespace
+//
+// Private functions
+//
 
-void check_fail(cudaError_t result, 
-	char const *const func, const char *const file, int const line)
-{
-	fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", 
-		file, line, result, cudaGetErrorString(result), func);
-	exit(EXIT_FAILURE);
-}
-
+/**
+ * @brief Retrieves attribute of the device
+ * @details 
+ * 
+ * @param attr attribute to get
+ * @return attribute value
+ */
 int get_attribute(cudaDeviceAttr attr)
 {
 	int value;
@@ -48,6 +55,11 @@ int get_attribute(cudaDeviceAttr attr)
 	return value;
 }
 
+/**
+ * @brief Gets from environment, whether verbosity should be enabled
+ * @details 
+ * @return verbosity status
+ */
 bool obtain_verbosity()
 {
 	const auto verbose = std::getenv("VERBOSE");
@@ -59,6 +71,11 @@ bool obtain_verbosity()
 	return true;
 }
 
+/**
+ * @brief Gets from environment number of device to select
+ * @details 
+ * @return number of device to select
+ */
 int obtain_devnum()
 {
 	const auto devnum = std::getenv("DEVNUM");
@@ -70,6 +87,10 @@ int obtain_devnum()
 	return atoi(devnum);
 }
 
+/**
+ * @brief Prints device attributes
+ * @details 
+ */
 void print_attributes()
 {
 	printf("Device attributes:\n");
@@ -94,17 +115,22 @@ void print_attributes()
 	printf(" cudaDevAttrMaxRegistersPerMultiprocessor=%d\n", get_attribute(cudaDevAttrMaxRegistersPerMultiprocessor));
 }
 
+} // namespace
+
 __host__
 void init()
 {
+	// Obtain environment variables
 	g_verbose = obtain_verbosity();
 	g_devnum = obtain_devnum();
 
+	// If verbose, print device attributes
 	if(g_verbose)
 	{
 		print_attributes();
 	}
 
+	// Select proper device
 	check_errors(cudaSetDevice(g_devnum));
 }
 

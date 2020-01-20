@@ -9,6 +9,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "filters.hpp"
+#include "filters_errors.hpp"
 
 /**
  * @brief Benchmarks performance of 2D filtering with all housekeeping stuff

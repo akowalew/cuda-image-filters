@@ -10,6 +10,7 @@
 
 add_library(filters
 	src/filters.cu
+	src/filters_errors.cu
 )
 
 target_link_libraries(filters
