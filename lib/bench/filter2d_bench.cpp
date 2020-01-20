@@ -80,8 +80,8 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 		check_errors(cudaEventRecord(start, 0));
 
 		// Invoke algorithm 
-		filters::filter2d_launch(d_src, d_spitch, cols, rows,
-			ksize,
+		filters::filter2d_launch(d_src, d_spitch, 
+			cols, rows, ksize,
 			d_dst, d_dpitch);
 
 		// Stop kernel time measuring
@@ -144,28 +144,21 @@ BENCHMARK_CAPTURE(filter2d_launch, 4096x2160x9, 4096, 2160, 9)
  */			
 void cv_filter2d(benchmark::State& state, int cols, int rows, int ksize)
 {
-	auto src = cv::Mat(rows, cols, CV_8UC1);
+	const auto src = cv::Mat(rows, cols, CV_8UC1);
 	auto dst = cv::Mat(rows, cols, CV_8UC1);
-	const auto ddepth = -1; // Keep depth as in source
-	auto kernel = cv::Mat(ksize, ksize, CV_32F);
+	const auto kernel = cv::Mat(ksize, ksize, CV_32F);
 
+	const auto ddepth = -1; // Keep depth as in source
 	for(auto _ : state)
 	{
 		cv::filter2D(src, dst, ddepth, kernel);
 	}
 }
 
-BENCHMARK_CAPTURE(cv_filter2d, 320x240x3, 320, 240, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 640x480x3, 640, 480, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 1024x768x3, 1024, 768, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 320x240x13, 320, 240, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x9, 4096, 2160, 9)
-	->UseRealTime();
+BENCHMARK_CAPTURE(cv_filter2d, 320x240x3, 320, 240, 3);
+BENCHMARK_CAPTURE(cv_filter2d, 640x480x3, 640, 480, 3);
+BENCHMARK_CAPTURE(cv_filter2d, 1024x768x3, 1024, 768, 3);
+BENCHMARK_CAPTURE(cv_filter2d, 320x240x13, 320, 240, 13);
+BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13);
+BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13);
+BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x9, 4096, 2160, 9);
