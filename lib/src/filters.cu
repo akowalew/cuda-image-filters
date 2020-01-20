@@ -20,8 +20,11 @@ const auto KSizeMax = 64;
 //! Fixed size constant buffer for convolution filter kernels
 __constant__ float c_kernel[KSizeMax * KSizeMax];
 
-// Number of threads in both X and Y dimensions in the block
+//! Number of threads in both X and Y dimensions in the block
 const auto K = 32;
+
+//! Number of blocks in both X and Y dimensions
+const auto G = 32;
 
 } // namespace
 
@@ -138,7 +141,8 @@ void filter2d(const cv::Mat& src, const cv::Mat& kernel, cv::Mat& dst)
 
 __host__
 void filter2d(
-	const uchar* src, size_t spitch, size_t cols, size_t rows,
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows,
 	const float* kernel, size_t ksize,
 	uchar* dst, size_t dpitch)
 {
@@ -153,8 +157,8 @@ void filter2d(
 	set_kernel(kernel, ksize);
 
 	// Launch filtering CUDA kernel
-	filter2d_launch(d_src, d_spitch, cols, rows,
-		ksize,
+	filter2d_launch(d_src, d_spitch, 
+		cols, rows, ksize,
 		d_dst, d_dpitch);
 
 	// Wait for kernel launch to be done
@@ -174,16 +178,13 @@ void filter2d_launch(
 	size_t cols, size_t rows, size_t ksize,
 	uchar* d_dst, size_t d_dpitch)
 {
-	// Let use as much threads in block as possible
 	const auto dim_block = dim3(K, K);
-
-	// Use as much KxK blocks as needed for this image
-	const auto dim_grid = dim3((cols+K-1)/K, (rows+K-1)/K);
+	const auto dim_grid = dim3(G, G);
 
 	// Invoke algorithm 
 	filter2d_kernel<<<dim_grid, dim_block>>>(
-		d_src, d_spitch, cols, rows,
-		ksize,
+		d_src, d_spitch, 
+		cols, rows, ksize,
 		d_dst, d_dpitch);
 
 	// Check errors in kernel invocation
@@ -195,7 +196,7 @@ void filter2d_kernel(
 	const uchar* src, size_t spitch, 
 	size_t cols, size_t rows, size_t ksize,
 	uchar* dst, size_t dpitch)
-{
+{	
 	// We need shared memory buffer to cache pixels from image.
 	// In general, in every pixel of the block we must provide access to 
 	// surrounding halfes of the kernel (which at the end gives full kernel size)
@@ -205,6 +206,14 @@ void filter2d_kernel(
 	// This is because, after benchmarking, iterating over rows of fixed size
 	// works faster than iterating over dynamic size array.
 	__shared__ uchar s_buffer[BufferSizeMax][BufferSizeMax];
+
+	const int i_end = ((rows+K-1) / K) * K;
+	const int j_end = ((cols+K-1) / K) * K;
+
+	for(int i = (threadIdx.y + blockIdx.y*K); i < i_end; i += G*K) {
+	for(int j = (threadIdx.x + blockIdx.x*K); j < j_end; j += G*K) {
+
+	__syncthreads();
 
 	// Cache source image into shared memory
 	// Each thread has to fetch every K-th element starting from that thread's
@@ -217,8 +226,8 @@ void filter2d_kernel(
 		{
 			// Note that we are not caching result of ksize/2
 			// Benchmark showed, that current variant is better
-			const int y = (m + blockIdx.y*K - ksize/2);
-			const int x = (n + blockIdx.x*K - ksize/2);
+			const int y = (i + m - threadIdx.y - ksize/2);
+			const int x = (j + n - threadIdx.x - ksize/2);
 
 			// If we are out of bound of the image, assume that buffer is zero
 			if((x < 0 || x > cols) || (y < 0 || y > rows))
@@ -236,8 +245,6 @@ void filter2d_kernel(
 	__syncthreads();
 
 	// Perform convolution on shared memory buffer
-	const int i = (blockIdx.y*K + threadIdx.y);
-	const int j = (blockIdx.x*K + threadIdx.x);
 	const int half_ksize = (ksize / 2);
 
 	// Check, if we are at the image border	
@@ -245,7 +252,7 @@ void filter2d_kernel(
 		|| (j > (cols - half_ksize)) || (j < half_ksize))
 	{
 		// Do not calculate nor write anything (aka BORDER_NONE)
-		return;
+		continue;
 	}
 
 	// Calculate partial sums of buffer pixels with kernel's elements
@@ -256,18 +263,21 @@ void filter2d_kernel(
 	{
 		for(int n = 0; n < ksize; ++n)
 		{
+			// Get position inside the buffer
 			const auto y = (threadIdx.y + m);
 			const auto x = (threadIdx.x + n);
 
+			// Get kernel and buffer values and accumulate their product 
 			const auto buffer_v = s_buffer[y][x];
 			const auto kernel_v = *(kernel++);
-
 			sum += (buffer_v * kernel_v);
 		}
 	}
 
 	// Store final sum in the destination image
 	dst[i*dpitch + j] = sum;
+
+	}}
 }
 
 } // namespace filters
