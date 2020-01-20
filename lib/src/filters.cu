@@ -226,7 +226,8 @@ void filter2d(const cv::Mat& src, const cv::Mat& kernel, cv::Mat& dst)
 	const auto kernel_data = (const float*) kernel.data;
 
 	// Invoke low-level filtering method
-	filter2d(src_data, spitch, cols, rows,
+	filter2d(src_data, spitch, 
+		cols, rows,
 		kernel_data, ksize,
 		dst_data, dpitch);
 }
@@ -248,8 +249,8 @@ void filter2d(
 	set_kernel(kernel, ksize);
 
 	// Launch filtering CUDA kernel
-	filter2d_launch(d_src, d_spitch, cols, rows,
-		ksize,
+	filter2d_launch(d_src, d_spitch, 
+		cols, rows, ksize,
 		d_dst, d_dpitch);
 
 	// Wait for kernel launch to be done
@@ -273,12 +274,14 @@ void filter2d_launch(
 	const auto dim_block = dim3(K, K);
 
 	// Use as much KxK blocks as needed for this image
-	const auto dim_grid = dim3((cols+K-1)/K, (rows+K-1)/K);
+	const auto dim_grid_x = ((cols+K-1) / K);
+	const auto dim_grid_y = ((rows+K-1) / K);
+	const auto dim_grid = dim3(dim_grid_x, dim_grid_y);
 
 	// Invoke algorithm 
 	filter2d_kernel<<<dim_grid, dim_block>>>(
-		d_src, d_spitch, cols, rows,
-		ksize,
+		d_src, d_spitch, 
+		cols, rows, ksize,
 		d_dst, d_dpitch);
 
 	// Check errors in kernel invocation
