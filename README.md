@@ -4,7 +4,7 @@ The aim of this studies project was to write image filtering algorithms for CUDA
 
 - Both source and destination image are represented as 2D, 8-bit, `unsigned char`, grayscale images
 - Convolution kernel is represented as 2D, 32-bit, `float`, square matrix. 
-- During filtering, no action takes place at image borders, so basically they are zeroed.
+- During filtering, no action takes place at image borders, so basically they have random values.
 
 <img src="assets/sample.jpg" width="49%"> <img src="assets/sample_out.jpg" width="49%">
 
@@ -75,7 +75,12 @@ In order to run `filter-image` you have to type:
 ./bin/filter-image <src_image> <dst_image> <kernel_size>
 ```
 
-where `src_image` is path to source image file, `dst_image` is path to destination image file and `kernel_size` is size of the square-type convolution filter. Now, to see the results you can watch them 
+where `src_image` is path to source image file, `dst_image` is path to destination image file and `kernel_size` is size of the square-type convolution filter. Now, to see the results you can watch them
+
+You can tune some app parameters using environment variables:
+
+- `VERBOSE=1` - will toggle verbosity. It causes e.g. printing of device attributes
+- `DEVNUM=n` - will change device number. By default it is 0 (first CUDA device)
 
 ## Running `filter` library benchmarks
 
