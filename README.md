@@ -6,6 +6,8 @@ The aim of this studies project was to write image filtering algorithms for CUDA
 - Convolution kernel is represented as 2D, 32-bit, `float`, square matrix. 
 - During filtering, no action takes place at image borders, so basically they are zeroed.
 
+<img src="assets/sample.jpg" width="49%"> <img src="assets/sample_out.jpg" width="49%">
+
 There are two main targets defined in the project: `filters` library and `filter-image` application, which uses the first. Image filtering algorithms are benchmarked and may be compared to reference, 3rd party, version. All of the host-side code is written in C++17 (CUDA-related in C++14), build system is defined using CMake, 3rd party dependencies are handled using Conan package manager, benchmarks are implemented using Google Benchmark library. Project uses also OpenCV library, but only for reading/writing images from/to hard-disk and for managing host-side matrices. 
 
 ## Requirements
