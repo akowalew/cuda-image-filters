@@ -42,22 +42,22 @@ target_compile_options(filters
 ###############################################################################
 
 if(BUILD_TESTING)
-	add_executable(filters_test
+	add_executable(filters-test
 		test/test_main.cpp
 	)
 
-	target_compile_options(filters_test
+	target_compile_options(filters-test
 		PRIVATE
 			-Wall -Wextra -pedantic
 	)
 
-	set_target_properties(filters_test
+	set_target_properties(filters-test
 		PROPERTIES
 			CXX_STANDARD 17
 			CXX_EXTENSIONS OFF
 	)
 
-	target_link_libraries(filters_test
+	target_link_libraries(filters-test
 		PRIVATE
 			filters
 
@@ -70,23 +70,23 @@ endif()
 ###############################################################################
 
 if(BUILD_BENCHMARKING)
-	add_executable(filters_bench
+	add_executable(filters-bench
 		bench/bench_main.cpp
 		bench/filter2d_bench.cpp
 	)
 
-	target_compile_options(filters_bench
+	target_compile_options(filters-bench
 		PRIVATE
 			-Wall -Wextra -pedantic
 	)
 
-	set_target_properties(filters_bench
+	set_target_properties(filters-bench
 		PROPERTIES
 			CXX_STANDARD 17
 			CXX_EXTENSIONS OFF
 	)
 
-	target_link_libraries(filters_bench
+	target_link_libraries(filters-bench
 		PRIVATE
 			filters
 
