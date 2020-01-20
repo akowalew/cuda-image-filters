@@ -127,7 +127,8 @@ void filter2d(const cv::Mat& src, const cv::Mat& kernel, cv::Mat& dst);
  */
 __host__
 void filter2d(
-	const uchar* src, size_t spitch, size_t cols, size_t rows,
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows,
 	const float* kernel, size_t ksize,
 	uchar* dst, size_t dpitch);
 
@@ -146,8 +147,8 @@ void filter2d(
  */
 __host__
 void filter2d_launch(
-	const uchar* d_src, size_t d_spitch, size_t cols, size_t rows,
-	size_t ksize,
+	const uchar* d_src, size_t d_spitch, 
+	size_t cols, size_t rows, size_t ksize,
 	uchar* d_dst, size_t d_dpitch);
 
 /**
@@ -165,8 +166,8 @@ void filter2d_launch(
  */
 __global__
 void filter2d_kernel(
-	const uchar* src, size_t spitch, size_t cols, size_t rows,
-	size_t ksize,
+	const uchar* src, size_t spitch, 
+	size_t cols, size_t rows, size_t ksize,
 	uchar* dst, size_t dpitch);
 
 } // namespace filters
