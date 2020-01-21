@@ -12,6 +12,30 @@
 #include "filters_errors.hpp"
 
 /**
+ * @brief Helper function to generate arguments for filter-related benchmarks
+ */
+void filter_arguments(benchmark::internal::Benchmark* b)
+{
+	const auto ksizes = {3, 9, 17, 33, 55};
+	const auto resolutions = {
+		std::pair{320, 240},
+		std::pair{640, 480},
+		std::pair{1280, 720},
+		std::pair{1920, 1080},
+		std::pair{3840, 2160}
+	};
+
+	// Add each combination of resolution and ksize into benchmark cases
+	for(const auto [cols, rows] : resolutions)
+	{
+		for(const auto ksize : ksizes)
+		{
+			b->Args({cols, rows, ksize});
+		}
+	}
+}
+
+/**
  * @brief Benchmarks performance of 2D filtering with all housekeeping stuff
  * @details 
  * 
@@ -35,20 +59,10 @@ void filter2d(benchmark::State& state, int cols, int rows, int ksize)
 	filters::cleanup();
 }
 
-BENCHMARK_CAPTURE(filter2d, 320x240x3, 320, 240, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 640x480x3, 640, 480, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 1024x768x3, 1024, 768, 3)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 320x240x13, 320, 240, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 640x480x13, 640, 480, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 1024x768x13, 1024, 768, 13)
-	->UseRealTime();
-BENCHMARK_CAPTURE(filter2d, 4096x2160x9, 4096, 2160, 9)
-	->UseRealTime();
+BENCHMARK(filter2d)
+	->UseRealTime()
+	->Apply(filter_arguments)
+	;
 
 /**
  * @brief Benchmarks performance of 2D filtering direct by CUDA kernel launcher
@@ -59,8 +73,12 @@ BENCHMARK_CAPTURE(filter2d, 4096x2160x9, 4096, 2160, 9)
  * @param rows image rows
  * @param ksize kernel size
  */
-void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
+void filter2d_launch(benchmark::State& state)
 {
+	const auto cols = (size_t) state.range(0);
+	const auto rows = (size_t) state.range(1);
+	const auto ksize = (size_t) state.range(2);
+
 	filters::init();
 
 	// Allocate memories
@@ -112,27 +130,10 @@ void filter2d_launch(benchmark::State& state, int cols, int rows, int ksize)
 	filters::cleanup();
 }
 
-BENCHMARK_CAPTURE(filter2d_launch, 320x240x3, 320, 240, 3)
+BENCHMARK(filter2d_launch)
 	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 640x480x3, 640, 480, 3)
-	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 1024x768x3, 1024, 768, 3)
-	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 320x240x13, 320, 240, 13)
-	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 640x480x13, 640, 480, 13)
-	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 1024x768x13, 1024, 768, 13)
-	->UseRealTime()
-	->UseManualTime();
-BENCHMARK_CAPTURE(filter2d_launch, 4096x2160x9, 4096, 2160, 9)
-	->UseRealTime()
-	->UseManualTime();
+	->UseManualTime()
+	->Apply(filter_arguments);
 
 /**
  * @brief Benchmarks performance of 2D filtering with OpenCV implementation
@@ -156,10 +157,7 @@ void cv_filter2d(benchmark::State& state, int cols, int rows, int ksize)
 	}
 }
 
-BENCHMARK_CAPTURE(cv_filter2d, 320x240x3, 320, 240, 3);
-BENCHMARK_CAPTURE(cv_filter2d, 640x480x3, 640, 480, 3);
-BENCHMARK_CAPTURE(cv_filter2d, 1024x768x3, 1024, 768, 3);
-BENCHMARK_CAPTURE(cv_filter2d, 320x240x13, 320, 240, 13);
-BENCHMARK_CAPTURE(cv_filter2d, 640x480x13, 640, 480, 13);
-BENCHMARK_CAPTURE(cv_filter2d, 1024x768x13, 1024, 768, 13);
-BENCHMARK_CAPTURE(cv_filter2d, 4096x2160x9, 4096, 2160, 9);
+BENCHMARK(cv_filter2d)
+	->UseRealTime()
+	->Apply(filter_arguments)
+	;
